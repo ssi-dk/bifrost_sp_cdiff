@@ -1,0 +1,3 @@
+[submodule "bifrost_sp_cdiff/cdiff_fbi"]
+	path = bifrost_sp_cdiff/cdiff_fbi
+	url = https://github.com/ssi-dk/cdiff_fbi.git
