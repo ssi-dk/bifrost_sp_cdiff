@@ -1,5 +1,5 @@
 # bifrost_sp_cdiff
-This component runs given a sample_id already added into the bifrostDB. If the sample is registered as **Clostridiodes difficile**, it should pull the paired reads, the contigs, and do the typing according to [cdiff_fbi](https://github.com/ssi-dk/cdiff_fbi)
+This component runs given a sample_id already added into the bifrostDB. If the sample is registered as *Clostridiodes difficile*, it should pull the paired reads, the contigs, and do the typing according to [cdiff_fbi](https://github.com/ssi-dk/cdiff_fbi)
 
 ## How to launch
 ```bash
