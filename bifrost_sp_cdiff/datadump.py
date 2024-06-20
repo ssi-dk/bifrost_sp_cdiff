@@ -10,10 +10,10 @@ from bifrostlib.datahandling import (Category, Component, Sample,
                                      SampleComponent, SampleComponentReference)
 
 
-def extract_results_from_json(serotype: Category, results: Dict, component_name: str, file_name: str) -> None:
+def extract_results_from_json(toxin_profile: Category, results: Dict, component_name: str, file_name: str) -> None:
     with open(file_name) as fd:
         results = json.load(fd)
-    serotype["summary"] = results
+    toxin_profile["summary"] = results
 
 
 def datadump(input: object, output: object, samplecomponent_ref_json: Dict):
@@ -22,9 +22,9 @@ def datadump(input: object, output: object, samplecomponent_ref_json: Dict):
     sample = Sample.load(samplecomponent.sample)
     component = Component.load(samplecomponent.component)
     
-    serotype = sample.get_category("serotype")
-    if serotype is None:
-        serotype = Category(value={
+    toxin_profile = sample.get_category("toxin_profile")
+    if toxin_profile is None:
+        toxin_profile = Category(value={
             "name": "bifrost_sp_cdiff",
             "component": samplecomponent.component,
             "summary": {
@@ -33,13 +33,13 @@ def datadump(input: object, output: object, samplecomponent_ref_json: Dict):
             "report": {}
         })
     extract_results_from_json(
-        serotype,
+        toxin_profile,
         samplecomponent["results"],
         samplecomponent["component"]["name"],
         input.cdiff_analysis_output_file)
     
-    samplecomponent.set_category(serotype)
-    sample.set_category(serotype)
+    samplecomponent.set_category(toxin_profile)
+    sample.set_category(toxin_profile)
     samplecomponent.save_files()
     common.set_status_and_save(sample, samplecomponent, "Success")
     pprint(output.complete)

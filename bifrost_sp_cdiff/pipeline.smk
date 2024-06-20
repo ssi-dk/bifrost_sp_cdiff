@@ -97,15 +97,14 @@ rule run_cdifftyping:
         #assembly = TODO,
         db = f"{resources_dir}/{component['resources']['db']}",
     params:  # values
-        #sample_id = TODO,
-        #stamp_value = TODO,
+        sample_id = sample.name,
         update = "no",
     output:
         folder = directory(rules.setup.params.folder + "/cdiff_analysis"),
     shell:
         """
         # Type
-        bash cdiff_fbi/cdifftyping.sh -i {params.sample_id} -R1 {input.reads[0]} -R2 {input.reads[1]} -c {input.assembly} -qc {params.stamp_value} -o {output.folder} -db {input.db} -update {params.update} 1> {log.out_file} 2> {log.err_file}
+        bash cdiff_fbi/cdifftyping.sh -i {params.sample_id} -R1 {input.reads[0]} -R2 {input.reads[1]} -c {input.assembly} -o {output.folder} -db {input.db} -update {params.update} 1> {log.out_file} 2> {log.err_file}
         """
 
 
@@ -123,14 +122,13 @@ rule run_postcdifftyping:
         reads = sample['categories']['paired_reads']['summary']['data'],
     params:  # values
         #sample_id = TODO,
-        #stbit = TODO,
     output:
         folder = directory(rules.setup.params.folder + "/cdiff_analysis"),
         _file = f"{folder}/{sample_id}.json"
     shell:
         """
         # Process
-        bash cdiff_fbi/postcdifftyping.sh -i {params.sample_id} -d {output.folder} -stbit "{params.stbit} 1> {log.out_file} 2> {log.err_file}"
+        bash cdiff_fbi/postcdifftyping.sh -i {params.sample_id} -d {output.folder} 1> {log.out_file} 2> {log.err_file}"
         """
 
 
