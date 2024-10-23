@@ -1,0 +1,62 @@
+name: bifrost sp cdiff workflow
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  repository_dispatch:  # webhook event to trigger this action workflow upon push to the submodule cdiff_fbi 
+    types: 
+      - cdiff-fbi-webhook 
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: ["ubuntu-latest"]
+        python-version: ["3.11"]
+  
+    steps:
+      # Step 1: Checkout repository
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          submodules: 'true'  #Initialize and update submodules -> git submodule init && git submodule update
+        
+      # Step 2: Update submodule to the latest commit
+      - name: Update submodule
+        run: |
+          cd bifrost_sp_cdiff/cdiff_fbi
+          git fetch origin
+          git checkout main  # or the specific branch you want to track
+          git pull origin main  # pull the latest changes
+          
+          # print the latest commit of cdiff_fbi
+          LATEST_COMMIT=$(git rev-parse HEAD)
+          echo "Updated cdiff_fbi to latest commit: $LATEST_COMMIT"
+
+      # Step 3: Set environment variables
+      - name: Set environment variables
+        run: |
+          echo "BIFROST_INSTALL_DIR='${{ github.workspace }}'" >> $GITHUB_ENV
+
+      # Step 4: Extract version from __init__.py and set ENV_NAME
+      - name: Set ENV_NAME
+        run: |
+          VERSION=$(grep "__version__" bifrost_sp_cdiff/__init__.py | cut -d "'" -f 2)
+          REPO_NAME=$(basename "${{ github.workspace }}")
+          ENV_NAME="${REPO_NAME}_v${VERSION}"
+          # Echo the ENV_NAME to the log for debugging
+          echo "Setting ENV_NAME to: $ENV_NAME"
+          echo "ENV_NAME=$ENV_NAME" >> $GITHUB_ENV
+
+      # Step 5: Build Docker image
+      - name: Build Docker image
+        run: |
+          docker build --build-arg BIFROST_DB_KEY="${{ secrets.MONGODB_ATLAS_TEST }}" --build-arg CONDA_ENV_NAME="${{ env.ENV_NAME }}" -t bifrost_sp_cdiff_image .
+
+      # Step 6: Run Docker container and execute the command
+      - name: Run Docker container
+        run: |
+          docker run --env BIFROST_DB_KEY="${{ secrets.MONGODB_ATLAS_TEST  }}" --env CONDA_ENV_NAME="${{ env.ENV_NAME }}" bifrost_sp_cdiff_image

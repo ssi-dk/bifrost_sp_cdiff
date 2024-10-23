@@ -9,6 +9,12 @@ helpFunction()
    exit 1 # Exit script after printing help
 }
 
+# Check if the conda command exist in order to setup the conda environment
+if ! command -v conda &> /dev/null; then
+    echo "conda could not be found, please install Anaconda/Miniconda"
+    exit 1
+fi
+
 while getopts "i:" opt
 do
    case "$opt" in
@@ -55,6 +61,24 @@ then
     conda config --add pkgs_dirs $BIFROST_CONDA_PATH/pkgs
   fi
 fi
+
+# Update ecoli_fbi submodule
+echo "Updating ecoli_fbi submodule to the most current commit"
+git submodule update --init --recursive
+cd bifrost_sp_ecoli/ecoli_fbi || exit
+
+# Fetch the latest changes from the remote repository
+git fetch origin
+git checkout main  # or the specific branch you want to track
+git pull origin main
+
+# Optionally, echo the latest commit SHA
+LATEST_COMMIT=$(git rev-parse HEAD)
+echo "Updated ecoli_fbi to latest commit: $LATEST_COMMIT"
+
+# Navigate back to the main project directory
+cd ../../
+pwd
 
 # Begin script
 if $(conda config --show channels | grep -q "bioconda")
