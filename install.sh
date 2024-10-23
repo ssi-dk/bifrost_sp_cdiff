@@ -62,10 +62,10 @@ then
   fi
 fi
 
-# Update ecoli_fbi submodule
-echo "Updating ecoli_fbi submodule to the most current commit"
+# Update cdiff_fbi submodule
+echo "Updating cdiff_fbi submodule to the most current commit"
 git submodule update --init --recursive
-cd bifrost_sp_ecoli/ecoli_fbi || exit
+cd bifrost_sp_cdiff/cdiff_fbi || exit
 
 # Fetch the latest changes from the remote repository
 git fetch origin
@@ -74,7 +74,7 @@ git pull origin main
 
 # Optionally, echo the latest commit SHA
 LATEST_COMMIT=$(git rev-parse HEAD)
-echo "Updated ecoli_fbi to latest commit: $LATEST_COMMIT"
+echo "Updated cdiff_fbi to latest commit: $LATEST_COMMIT"
 
 # Navigate back to the main project directory
 cd ../../
