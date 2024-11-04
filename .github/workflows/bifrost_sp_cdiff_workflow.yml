@@ -28,14 +28,30 @@ jobs:
       - name: Update submodule
         run: |
           cd bifrost_sp_cdiff/cdiff_fbi
-          git fetch origin
-          git checkout main  # or the specific branch you want to track
-          git pull origin main  # pull the latest changes
-          
-          # print the latest commit of cdiff_fbi
-          LATEST_COMMIT=$(git rev-parse HEAD)
-          echo "Updated cdiff_fbi to latest commit: $LATEST_COMMIT"
 
+          # Show the current commit hash before updating
+          CURRENT_COMMIT=$(git rev-parse HEAD)
+          echo "Current commit hash of cdiff_fbi before update: $CURRENT_COMMIT"
+
+          echo "Fetching latest changes from origin"
+          git fetch origin --tags
+
+          echo "Switching to the main branch and pulling latest updates"
+          git checkout main  # or the specific branch you want to track
+          git pull origin main --tags # pull the latest changes
+          
+          # Show the new commit hash after the update
+          LATEST_COMMIT=$(git rev-parse HEAD)
+          echo "Updated commit hash of cdiff_fbi after update: $LATEST_COMMIT"
+
+          # print the latest tag of cdiff_fbi
+          LATEST_TAG_COMMIT=$(git tag --sort=-creatordate --format '%(objectname)'|head -1)
+          LATEST_TAG=$(git tag --sort=-creatordate|head -1)
+                    
+          echo "Checking commit hash for the latest tag of cdiff_fbi: $LATEST_TAG_COMMIT"
+          echo "Checking the lastest tag of cdiff_fbi: $LATEST_TAG"
+
+          git checkout $LATEST_TAG_COMMIT
       # Step 3: Set environment variables
       - name: Set environment variables
         run: |
