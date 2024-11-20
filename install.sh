@@ -76,12 +76,12 @@ git pull origin main --tags
 LATEST_COMMIT=$(git rev-parse HEAD)
 echo "Updated commit hash of cdiff_fbi after update: $LATEST_COMMIT"
 
-# print the latest tag of ecoli_fbi
+# print the latest tag of cdiff_fbi
 LATEST_TAG_COMMIT=$(git tag --sort=-creatordate --format '%(objectname)'|head -1)
 LATEST_TAG=$(git tag --sort=-creatordate|head -1)
 
-echo "Checking commit hash for the latest tag of ecoli_fbi: $LATEST_TAG_COMMIT"
-echo "Checking the lastest tag of ecoli_fbi: $LATEST_TAG"
+echo "Checking commit hash for the latest tag of cdiff_fbi: $LATEST_TAG_COMMIT"
+echo "Checking the lastest tag of cdiff_fbi: $LATEST_TAG"
   
 git checkout $LATEST_TAG_COMMIT
 
