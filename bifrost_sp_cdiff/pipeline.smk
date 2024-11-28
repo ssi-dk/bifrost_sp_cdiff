@@ -16,17 +16,34 @@ try:
     #print(config)
     sample_ref = SampleReference(_id=config.get('sample_id', None), name=config.get('sample_name', None))
     sample:Sample = Sample.load(sample_ref) # schema 2.1
+    sample_id=sample['name']
+    print(f"sample_ref {sample_ref} and sample id {sample_id}")
     if sample is None:
         raise Exception("invalid sample passed")
     component_ref = ComponentReference(name=config['component_name'])
     component:Component = Component.load(reference=component_ref) # schema 2.1
+    print(f"Component ref: {component_ref}")
+    print(f"Component ref: {component}")
     if component is None:
         raise Exception("invalid component passed")
     samplecomponent_ref = SampleComponentReference(name=SampleComponentReference.name_generator(sample.to_reference(), component.to_reference()))
     samplecomponent = SampleComponent.load(samplecomponent_ref)
+    print(f"sample component_ref {samplecomponent_ref}")
+    print(f"sample component {samplecomponent}")
     if samplecomponent is None:
         samplecomponent:SampleComponent = SampleComponent(sample_reference=sample.to_reference(), component_reference=component.to_reference()) # schema 2.1
     common.set_status_and_save(sample, samplecomponent, "Running")
+
+    # This gets the nucleotide fasta from assemblatron.
+    assemblatron_samplecomponent_field = [i for i in sample['components'] if i['name'].startswith('assemblatron')] 
+    # there may be multiple components associated with the sample, so we select the most recent one.
+    most_recent_assemblatron_name = sorted([i['name'] for i in assemblatron_samplecomponent_field], reverse=True)[0]
+    assemblatron_reference = ComponentReference(name=most_recent_assemblatron_name)
+    assemblatron_samplecomponent_ref = SampleComponentReference(name=SampleComponentReference.name_generator(sample.to_reference(), assemblatron_reference))
+    assemblatron_samplecomponent = SampleComponent.load(assemblatron_samplecomponent_ref)
+    assemblatron_path = assemblatron_samplecomponent['path']
+    print(f"Assembly {assemblatron_path}")
+    
 except Exception as error:
     print(traceback.format_exc(), file=sys.stderr)
     raise Exception("failed to set sample, component and/or samplecomponent")
@@ -42,6 +59,11 @@ envvars:
     "CONDA_PREFIX"
 
 resources_dir=f"{os.environ['BIFROST_INSTALL_DIR']}/bifrost/components/bifrost_{component['display_name']}"
+print(f"resource dir {resources_dir}")
+
+print(f"component db {component['resources']['db']}")
+print(f"component {component['resources']}")
+print(f"component name {component['name']}")
 
 rule all:
     input:
@@ -81,6 +103,8 @@ rule check_requirements:
 
 #- Templated section: end --------------------------------------------------------------------------
 
+print(f"{component['resources']['db']}")
+print(f"{assemblatron_path}/{sample_id}.fasta")
 #* Dynamic section: start **************************************************************************
 rule_name = "run_cdifftyping"
 rule run_cdifftyping:
@@ -93,20 +117,20 @@ rule run_cdifftyping:
         f"{component['name']}/benchmarks/{rule_name}.benchmark",
     input:  # files
         rules.check_requirements.output.check_file,
-        reads = reads,
-        #assembly = TODO,
-        db = f"{resources_dir}/{component['resources']['db']}",
+        reads = sample['categories']['paired_reads']['summary']['data'],
+        assembly = f"{assemblatron_path}/{sample_id}.fasta",
+        db = f"{resources_dir}/bifrost_sp_cdiff/{component['resources']['db']}",
     params:  # values
-        sample_id = sample.name,
+        sample_id = sample_id,
         update = "no",
     output:
         folder = directory(rules.setup.params.folder + "/cdiff_analysis"),
     shell:
         """
+	echo {rules.run_ecolityping.input.assembly}
         # Type
-        bash cdiff_fbi/cdifftyping.sh -i {params.sample_id} -R1 {input.reads[0]} -R2 {input.reads[1]} -c {input.assembly} -o {output.folder} -db {input.db} -update {params.update} 1> {log.out_file} 2> {log.err_file}
+        bash {resources_dir}/bifrost_sp_cdiff/cdiff_fbi/cdifftyping.sh -i {params.sample_id} -R1 {input.reads[0]} -R2 {input.reads[1]} -c {input.assembly} -o {output.folder} -db {input.db} -update {params.update} 1> {log.out_file} 2> {log.err_file}
         """
-
 
 rule_name = "run_postcdifftyping"
 rule run_postcdifftyping:
@@ -119,16 +143,15 @@ rule run_postcdifftyping:
         f"{component['name']}/benchmarks/{rule_name}.benchmark",
     input:  # files
         rules.check_requirements.output.check_file,
-        reads = sample['categories']['paired_reads']['summary']['data'],
+        folder = rules.run_cdifftyping.output.folder
     params:  # values
-        #sample_id = TODO,
+        sample_id = rules.run_cdifftyping.params.sample_id
     output:
-        folder = directory(rules.setup.params.folder + "/cdiff_analysis"),
         _file = f"{folder}/{sample_id}.json"
     shell:
         """
         # Process
-        bash cdiff_fbi/postcdifftyping.sh -i {params.sample_id} -d {output.folder} 1> {log.out_file} 2> {log.err_file}"
+        bash {resources_dir}/bifrost_sp_cdiff/cdiff_fbi/postcdifftyping.sh -i {params.sample_id} -d {input.folder} 1> {log.out_file} 2> {log.err_file}"
         """
 
 
