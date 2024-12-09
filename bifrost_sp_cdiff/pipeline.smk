@@ -42,7 +42,6 @@ try:
     assemblatron_samplecomponent_ref = SampleComponentReference(name=SampleComponentReference.name_generator(sample.to_reference(), assemblatron_reference))
     assemblatron_samplecomponent = SampleComponent.load(assemblatron_samplecomponent_ref)
     assemblatron_path = assemblatron_samplecomponent['path']
-    print(f"Assembly {assemblatron_path}")
     
 except Exception as error:
     print(traceback.format_exc(), file=sys.stderr)
@@ -59,11 +58,6 @@ envvars:
     "CONDA_PREFIX"
 
 resources_dir=f"{os.environ['BIFROST_INSTALL_DIR']}/bifrost/components/bifrost_{component['display_name']}"
-print(f"resource dir {resources_dir}")
-
-print(f"component db {component['resources']['db']}")
-print(f"component {component['resources']}")
-print(f"component name {component['name']}")
 
 rule all:
     input:
@@ -103,8 +97,6 @@ rule check_requirements:
 
 #- Templated section: end --------------------------------------------------------------------------
 
-print(f"{component['resources']['db']}")
-print(f"{assemblatron_path}/{sample_id}.fasta")
 #* Dynamic section: start **************************************************************************
 rule_name = "run_cdifftyping"
 rule run_cdifftyping:
@@ -127,7 +119,6 @@ rule run_cdifftyping:
         folder = directory(rules.setup.params.folder + "/cdiff_analysis"),
         _R1 = f"{rules.setup.params.folder}/cdiff_analysis/{sample_id}/sp_cdiff_fbi/cdifffiltered_R1.fastq",
         _R2 = f"{rules.setup.params.folder}/cdiff_analysis/{sample_id}/sp_cdiff_fbi/cdifffiltered_R2.fastq",
-        _txt = f"{rules.setup.params.folder}/cdiff_analysis/{sample_id}/sp_cdiff_fbi/{sample_id}_assessment_report.txt",
         _bam = f"{rules.setup.params.folder}/cdiff_analysis/{sample_id}/sp_cdiff_fbi/{sample_id}.bam",
         _bai = f"{rules.setup.params.folder}/cdiff_analysis/{sample_id}/sp_cdiff_fbi/{sample_id}.bam.bai",
         _cdtA = f"{rules.setup.params.folder}/cdiff_analysis/{sample_id}/sp_cdiff_fbi/{sample_id}_cdtA.info",
@@ -149,15 +140,11 @@ rule run_cdifftyping:
         _snp_indel_vcf_idx = f"{rules.setup.params.folder}/cdiff_analysis/{sample_id}/sp_cdiff_fbi/{sample_id}.snp_indel.vcf.idx",
         _snp_vcf = f"{rules.setup.params.folder}/cdiff_analysis/{sample_id}/sp_cdiff_fbi/{sample_id}.snp.vcf",
         _snp_vcf_idx = f"{rules.setup.params.folder}/cdiff_analysis/{sample_id}/sp_cdiff_fbi/{sample_id}.snp.vcf.idx",
-        _TRST_fasta = f"{rules.setup.params.folder}/cdiff_analysis/{sample_id}/sp_cdiff_fbi/{sample_id}._TRST.fasta",
+        _TRST_fasta = f"{rules.setup.params.folder}/cdiff_analysis/{sample_id}/sp_cdiff_fbi/{sample_id}_TRST.fasta",
     shell:
         """
-        echo /home/people/rashen/bifrost_sp_cdiff/bifrost_sp_cdiff/cdiff_fbi/cdifftyping.sh -i {params.sample_id} -R1 {input.reads[0]} -R2 {input.reads[1]} -c {input.assembly} -o {output.folder} -db {input.db} -update {params.update}        
-#echo {rules.run_ecolityping.input.assembly}
-        # Type
-        #bash {resources_dir}/bifrost_sp_cdiff/cdiff_fbi/cdifftyping.sh -i {params.sample_id} -R1 {input.reads[0]} -R2 {input.reads[1]} -c {input.assembly} -o {output.folder} -db {input.db} -update {params.update} 1> {log.out_file} 2> {log.err_file}
-        bash /home/people/rashen/bifrost_sp_cdiff/bifrost_sp_cdiff/cdiff_fbi/cdifftyping.sh -i {params.sample_id} -R1 {input.reads[0]} -R2 {input.reads[1]} -c {input.assembly} -o {output.folder} -db {input.db} -update {params.update} 1> {log.out_file} 2> {log.err_file}
-        #bash /home/people/rashen/bifrost_sp_cdiff/bifrost_sp_cdiff/cdiff_fbi/cdifftyping.sh -i testrun_ec___24000006_MW-ESCEC -R1 /home/projects/fvst_ssi_dtu/data/dev/output/ssi/2024/testrun_ec/samples/24000006-MW-ESCEC-run999_S1_L001_R1_001.fastq.gz -R2 /home/projects/fvst_ssi_dtu/data/dev/output/ssi/2024/testrun_ec/samples/24000006-MW-ESCEC-run999_S1_L001_R2_001.fastq.gz -o sp_cdiff -db /home/projects/fvst_ssi_dtu/apps/sofi_bifrost_dev/scripts/bifrost/components/bifrost_sp_cdiff/bifrost_sp_cdiff/cdiff_fbi/db -c assemblatron__v2.3.3/testrun_ec___24000006_MW-ESCEC.fasta -update no
+        #Type
+        bash {resources_dir}/bifrost_sp_cdiff/cdiff_fbi/cdifftyping.sh -i {params.sample_id} -R1 {input.reads[0]} -R2 {input.reads[1]} -c {input.assembly} -o {output.folder} -db {input.db} -update {params.update} 1> {log.out_file} 2> {log.err_file}
         """
 
 rule_name = "run_postcdifftyping"
@@ -172,15 +159,39 @@ rule run_postcdifftyping:
     input:  # files
         rules.check_requirements.output.check_file,
         folder = rules.run_cdifftyping.output.folder,
+        _R1 = rules.run_cdifftyping.output._R1,
+        _R2 = rules.run_cdifftyping.output._R2,
+        _bam = rules.run_cdifftyping.output._bam,
+        _bai = rules.run_cdifftyping.output._bai,
+        _cdtA = rules.run_cdifftyping.output._cdtA,
+        _cdtB = rules.run_cdifftyping.output._cdtB,
+        _tcdA = rules.run_cdifftyping.output._tcdA,
+        _tcdB = rules.run_cdifftyping.output._tcdB,
+        _tcdC = rules.run_cdifftyping.output._tcdC,
+        _coverage = rules.run_cdifftyping.output._coverage,
+        _counts = rules.run_cdifftyping.output._counts,
+        _proportions = rules.run_cdifftyping.output._proportions,
+        _interval_statistics = rules.run_cdifftyping.output._interval_statistics,
+        _interval_summary = rules.run_cdifftyping.output._interval_summary,
+        _sample_statistics = rules.run_cdifftyping.output._sample_statistics,
+        _sample_summary = rules.run_cdifftyping.output._sample_summary,
+        _indel_vcf = rules.run_cdifftyping.output._indel_vcf,
+        _indel_vcf_idx = rules.run_cdifftyping.output._indel_vcf_idx,
+        _sam = rules.run_cdifftyping.output._sam,
+        _snp_indel_vcf = rules.run_cdifftyping.output._snp_indel_vcf,
+        _snp_indel_vcf_idx = rules.run_cdifftyping.output._snp_indel_vcf_idx,
+        _snp_vcf = rules.run_cdifftyping.output._snp_vcf,
+        _snp_vcf_idx = rules.run_cdifftyping.output._snp_vcf_idx,
+        _TRST_fasta = rules.run_cdifftyping.output._TRST_fasta,
+    params:  # values
+        sample_id = rules.run_cdifftyping.params.sample_id,
     output:
         _file = f"{rules.run_cdifftyping.output.folder}/{rules.run_cdifftyping.params.sample_id}/{rules.run_cdifftyping.params.sample_id}.json",
         _csv = f"{rules.run_cdifftyping.output.folder}/{rules.run_cdifftyping.params.sample_id}/{rules.run_cdifftyping.params.sample_id}.csv",
     shell:
         """
         # Process
-        #bash {resources_dir}/bifrost_sp_cdiff/cdiff_fbi/postcdifftyping.sh -i {params.sample_id} -d {input.folder} 1> {log.out_file} 2> {log.err_file}"
-        bash /home/people/rashen/bifrost_sp_cdiff/bifrost_sp_cdiff/cdiff_fbi/postcdifftyping.sh -i {params.sample_id} -d {input.folder} 1> {log.out_file} 2> {log.err_file}
-        #bash /home/people/rashen/bifrost_sp_cdiff/bifrost_sp_cdiff/cdiff_fbi/postcdifftyping.sh -i testrun_ec___24000006_MW-ESCEC -d {input.folder} -stbit "STNA;NA:NA"
+        bash {resources_dir}/bifrost_sp_cdiff/cdiff_fbi/postcdifftyping.sh -i {params.sample_id} -d {input.folder} -stbit "STNA;NA:NA" 1> {log.out_file} 2> {log.err_file}
         """
 
 
@@ -224,6 +235,5 @@ rule datadump:
     params:
         samplecomponent_ref_json = samplecomponent.to_reference().json
     script:
-        #f"{resources_dir}/bifrost_sp_cdiff/datadump.py"
-        f"/home/people/rashen/bifrost_sp_cdiff/bifrost_sp_cdiff/datadump.py"
+        f"{resources_dir}/bifrost_sp_cdiff/datadump.py"
 #- Templated section: end --------------------------------------------------------------------------
