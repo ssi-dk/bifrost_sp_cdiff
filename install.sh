@@ -81,8 +81,16 @@ fi
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 REQ_TXT="$SCRIPT_DIR/environment.yml"
+LAST_DIR_NAME=$(basename "$SCRIPT_DIR")
+CODEDIR="$SCRIPT_DIR/$LAST_DIR_NAME"
+echo "The last directory name is: $LAST_DIR_NAME"
+echo "the script dir $SCRIPT_DIR"
+echo "codeDIR $CODEDIR"
 
-CONFIG_YAML_PATH=$(find $SCRIPT_DIR -name "config.yaml")
+CONFIG_YAML_PATH=$(find $CODEDIR -name "config.yaml")
+#CONFIG_YAML_PATH=$(find $SCRIPT_DIR -type f -name "config.yaml")
+echo "$CONFIG_YAML_PATH"
+
 if test -f "$CONFIG_YAML_PATH";
 then
   COMPONENT_NAME=$(grep "display_name:.*." $CONFIG_YAML_PATH | tr " " "\n" | grep -v "display_name:")
