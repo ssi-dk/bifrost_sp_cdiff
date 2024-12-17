@@ -93,13 +93,13 @@ echo "$CONFIG_YAML_PATH"
 
 if test -f "$CONFIG_YAML_PATH";
 then
-  COMPONENT_NAME=$(grep "display_name:.*." $CONFIG_YAML_PATH | tr " " "\n" | grep -v "display_name:")
+  COMPONENT_NAME=$(grep -oP "^display_name:\s*\K.*" $CONFIG_YAML_PATH | tr " " "\n" | grep -v "display_name:")
   if [ -z "$COMPONENT_NAME" ]
     then
       echo "display_name: in config.yaml should contain component name"
       exit 1
   fi
-  COMPONENT_VERSION=$(grep -o "code:.*." $CONFIG_YAML_PATH | tr " " "\n" | grep -v "code:")
+  COMPONENT_VERSION=$(grep -oP "^  code:\s*\K.*" $CONFIG_YAML_PATH | tr " " "\n" | grep -v "code:")
   if [ -z "$COMPONENT_VERSION" ]
     then
       echo "code: in config.yaml should contain component version"
