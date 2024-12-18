@@ -159,6 +159,7 @@ fi
 #check if custom_install.sh file exists and run it
 if test -f "$CUSTOM_INSTALL_PATH";
 then
-  echo -e "\nRunning custom_install.sh"
+  echo -e "\nRunning custom_install.sh -> bash -i $CUSTOM_INSTALL_PATH $ENV_NAME"
   bash -i $CUSTOM_INSTALL_PATH $ENV_NAME #-i required for interactive mode to active env
+  #bash $CUSTOM_INSTALL_PATH $ENV_NAME
 fi
