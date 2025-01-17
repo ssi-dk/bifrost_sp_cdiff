@@ -174,7 +174,7 @@ def run_pipeline(args: argparse.Namespace) -> None:
                 snakefile,
                 cores = os.cpu_count,
                 printshellcmds=True,
-                nolock=True
+                nolock=True,
                 config=config
             )
     except Exception:
