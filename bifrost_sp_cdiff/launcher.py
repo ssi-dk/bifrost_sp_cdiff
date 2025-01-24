@@ -42,6 +42,7 @@ def initialize():
     if not(datahandling.has_a_database_connection()):
         raise ConnectionError("BIFROST_DB_KEY is not set or other connection error")
 
+    global COMPONENT
     try:
         component_ref = ComponentReference(name=config["name"])
         COMPONENT = Component.load(component_ref)
@@ -166,7 +167,7 @@ def run_pipeline(args: argparse.Namespace) -> None:
         samplecomponent_ref = SampleComponentReference(name=SampleComponentReference.name_generator(sample.to_reference(), COMPONENT.to_reference()))
         samplecomponent = SampleComponent.load(samplecomponent_ref)
         if samplecomponent is None:
-            samplecomponent:SampleComponent = SampleComponent(sample_reference=sample.to_reference(), component_reference=component.to_reference()) # schema 2.1
+            samplecomponent:SampleComponent = SampleComponent(sample_reference=sample.to_reference(), component_reference=COMPONENT.to_reference()) # schema 2.1
 
         snakefile = os.path.join(os.path.dirname(__file__),'pipeline.smk')
         with pushd(args.outdir):
