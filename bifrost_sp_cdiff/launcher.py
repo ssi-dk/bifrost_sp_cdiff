@@ -157,9 +157,11 @@ def show_info() -> None:
 def subprocess_runner(snakefile,
                       config, outdir,
                       cores= os.cpu_count):
+        config_list = [f"{k}={v}" for k,v in config.items]
         command = ["snakemake","-p","--nolock","--cores", "all",
                    "-s", snakefile,
-                   "--config", str(config)]
+                   "--config" ]
+        command.extend(config_list)
         print(" ".join(command))
         process: subprocess.Popen = subprocess.Popen(
             command,
