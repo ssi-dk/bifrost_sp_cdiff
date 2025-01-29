@@ -18,7 +18,8 @@ from bifrostlib.datahandling import SampleComponent
 import yaml
 import pprint
 from typing import List, Dict
-import snakemake
+#import snakemake
+import subprocess
 
 from contextlib import contextmanager
 
@@ -153,8 +154,25 @@ def parse_and_run(args: List[str]) -> None:
 def show_info() -> None:
     pprint.pprint(COMPONENT.json)
 
+def subprocess_runner(snakefile,
+                      config, outdir,
+                      cores= os.cpu_count):
+        command = ["snakemake","-p","--nolock","--cores", "all",
+                   "-s", snakefile,
+                   "--config", str(config)]
+        print(" ".join(command))
+        process: subprocess.Popen = subprocess.Popen(
+            command,
+            stdout=sys.stdout,
+            stderr=sys.stderr,
+            shell=False,
+            cwd=outdir
+        )
+        process.communicate()
+        if process.returncode != 0:
+            raise RuntimeError(f"Command {' '.join([str(x) for x in command])} failed with code {process.returncode}")
 
-def run_pipeline(args: argparse.Namespace) -> None:
+def run_pipeline(args: argparse.Namespace, runner=subprocess_runner) -> None:
     try:
         config = {"component_name": COMPONENT['name']}
         if args.sample_id is not None:
@@ -171,12 +189,11 @@ def run_pipeline(args: argparse.Namespace) -> None:
 
         snakefile = os.path.join(os.path.dirname(__file__),'pipeline.smk')
         with pushd(args.outdir):
-            status = snakemake.snakemake(
-                snakefile,
-                cores = os.cpu_count,
-                printshellcmds=True,
-                nolock=True,
-                config=config
+            status = runner(
+                snakefile=snakefile,
+                config=config,
+                outdir=args.outdir,
+                cores = os.cpu_count
             )
     except Exception:
         common.set_status_and_save(sample, samplecomponent, "Failure")
