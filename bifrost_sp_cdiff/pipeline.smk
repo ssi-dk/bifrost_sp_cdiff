@@ -16,24 +16,23 @@ try:
     sample_ref = SampleReference(_id=config.get('sample_id', None), name=config.get('sample_name', None))
     sample:Sample = Sample.load(sample_ref) # schema 2.1
     sample_id=sample['name']
-    print(f"sample_ref {sample_ref} and sample id {sample_id}")
+    #print(f"sample_ref {sample_ref} and sample id {sample_id}")
     if sample is None:
         raise Exception("invalid sample passed")
     component_ref = ComponentReference(name=config['component_name'])
     component:Component = Component.load(reference=component_ref) # schema 2.1
-    print(f"Component ref: {component_ref}")
-    print(f"Component ref: {component}")
+    #print(f"Component ref: {component_ref}")
+    #print(f"Component ref: {component}")
     if component is None:
         raise Exception("invalid component passed")
     samplecomponent_ref = SampleComponentReference(name=SampleComponentReference.name_generator(sample.to_reference(), component.to_reference()))
     samplecomponent = SampleComponent.load(samplecomponent_ref)
-    print(f"sample component_ref {samplecomponent_ref}")
-    print(f"sample component {samplecomponent}")
+    #print(f"sample component_ref {samplecomponent_ref}")
+    #print(f"sample component {samplecomponent}")
     if samplecomponent is None:
         samplecomponent:SampleComponent = SampleComponent(sample_reference=sample.to_reference(), component_reference=component.to_reference()) # schema 2.1
     common.set_status_and_save(sample, samplecomponent, "Running")
 
-    
 except Exception as error:
     print(traceback.format_exc(), file=sys.stderr)
     raise Exception("failed to set sample, component and/or samplecomponent")
@@ -79,8 +78,6 @@ rule check_requirements:
         folder = rules.setup.output.init_file,
     output:
         check_file = f"{component['name']}/requirements_met",
-    params:
-        samplecomponent
     run:
         if samplecomponent.has_requirements():
             with open(output.check_file, "w") as fh:
@@ -91,6 +88,9 @@ rule check_requirements:
 #* Dynamic section: start **************************************************************************
 
 rule_name_typing = "run_cdifftyping"
+
+cdifftyping_out_dir=f"{rules.setup.params.folder}/{rule_name_typing}/{sample_id}/sp_cdiff_fbi"
+
 rule run_cdifftyping:
     message:
         f"Running step:{rule_name_typing}"
@@ -104,41 +104,41 @@ rule run_cdifftyping:
         reads = sample['categories']['paired_reads']['summary']['data'],
         assembly = sample['categories']['contigs']['summary']['data'],
         db = f"{resources_dir}/bifrost_sp_cdiff/{component['resources']['db']}",
-    params:  # values
-        sample_id = sample_id,
-        update = "no",
     output:
-        _R1 = f"{rules.setup.params.folder}/{rule_name_typing}/{sample_id}/sp_cdiff_fbi/cdifffiltered_R1.fastq",
-        _R2 = f"{rules.setup.params.folder}/{rule_name_typing}/{sample_id}/sp_cdiff_fbi/cdifffiltered_R2.fastq",
-        _bam = f"{rules.setup.params.folder}/{rule_name_typing}/{sample_id}/sp_cdiff_fbi/{sample_id}.bam",
-        _bai = f"{rules.setup.params.folder}/{rule_name_typing}/{sample_id}/sp_cdiff_fbi/{sample_id}.bam.bai",
-        _cdtA = f"{rules.setup.params.folder}/{rule_name_typing}/{sample_id}/sp_cdiff_fbi/{sample_id}_cdtA.info",
-        _cdtB = f"{rules.setup.params.folder}/{rule_name_typing}/{sample_id}/sp_cdiff_fbi/{sample_id}_cdtB.info",
-        _tcdA = f"{rules.setup.params.folder}/{rule_name_typing}/{sample_id}/sp_cdiff_fbi/{sample_id}_tcdA.info",
-        _tcdB = f"{rules.setup.params.folder}/{rule_name_typing}/{sample_id}/sp_cdiff_fbi/{sample_id}_tcdB.info",
-        _tcdC = f"{rules.setup.params.folder}/{rule_name_typing}/{sample_id}/sp_cdiff_fbi/{sample_id}_tcdC.info",
-        _coverage = f"{rules.setup.params.folder}/{rule_name_typing}/{sample_id}/sp_cdiff_fbi/{sample_id}.coverage",
-        _counts = f"{rules.setup.params.folder}/{rule_name_typing}/{sample_id}/sp_cdiff_fbi/{sample_id}.coverage.sample_cumulative_coverage_counts",
-        _proportions = f"{rules.setup.params.folder}/{rule_name_typing}/{sample_id}/sp_cdiff_fbi/{sample_id}.coverage.sample_cumulative_coverage_proportions",
-        _interval_statistics = f"{rules.setup.params.folder}/{rule_name_typing}/{sample_id}/sp_cdiff_fbi/{sample_id}.coverage.sample_interval_statistics",
-        _interval_summary = f"{rules.setup.params.folder}/{rule_name_typing}/{sample_id}/sp_cdiff_fbi/{sample_id}.coverage.sample_interval_summary",
-        _sample_statistics = f"{rules.setup.params.folder}/{rule_name_typing}/{sample_id}/sp_cdiff_fbi/{sample_id}.coverage.sample_statistics",
-        _sample_summary = f"{rules.setup.params.folder}/{rule_name_typing}/{sample_id}/sp_cdiff_fbi/{sample_id}.coverage.sample_summary",
-        _indel_vcf = f"{rules.setup.params.folder}/{rule_name_typing}/{sample_id}/sp_cdiff_fbi/{sample_id}.indel.vcf",
-        _indel_vcf_idx = f"{rules.setup.params.folder}/{rule_name_typing}/{sample_id}/sp_cdiff_fbi/{sample_id}.indel.vcf.idx",
-        _sam = f"{rules.setup.params.folder}/{rule_name_typing}/{sample_id}/sp_cdiff_fbi/{sample_id}.sam",
-        _snp_indel_vcf = f"{rules.setup.params.folder}/{rule_name_typing}/{sample_id}/sp_cdiff_fbi/{sample_id}.snp_indel.vcf",
-        _snp_indel_vcf_idx = f"{rules.setup.params.folder}/{rule_name_typing}/{sample_id}/sp_cdiff_fbi/{sample_id}.snp_indel.vcf.idx",
-        _snp_vcf = f"{rules.setup.params.folder}/{rule_name_typing}/{sample_id}/sp_cdiff_fbi/{sample_id}.snp.vcf",
-        _snp_vcf_idx = f"{rules.setup.params.folder}/{rule_name_typing}/{sample_id}/sp_cdiff_fbi/{sample_id}.snp.vcf.idx",
-        _TRST_fasta = f"{rules.setup.params.folder}/{rule_name_typing}/{sample_id}/sp_cdiff_fbi/{sample_id}_TRST.fasta",
+        _R1 = f"{cdifftyping_out_dir}/cdifffiltered_R1.fastq",
+        _R2 = f"{cdifftyping_out_dir}/cdifffiltered_R2.fastq",
+        _bam = f"{cdifftyping_out_dir}/{sample_id}.bam",
+        _bai = f"{cdifftyping_out_dir}/{sample_id}.bam.bai",
+        _cdtA = f"{cdifftyping_out_dir}/{sample_id}_cdtA.info",
+        _cdtB = f"{cdifftyping_out_dir}/{sample_id}_cdtB.info",
+        _tcdA = f"{cdifftyping_out_dir}/{sample_id}_tcdA.info",
+        _tcdB = f"{cdifftyping_out_dir}/{sample_id}_tcdB.info",
+        _tcdC = f"{cdifftyping_out_dir}/{sample_id}_tcdC.info",
+        _coverage = f"{cdifftyping_out_dir}/{sample_id}.coverage",
+        _counts = f"{cdifftyping_out_dir}/{sample_id}.coverage.sample_cumulative_coverage_counts",
+        _proportions = f"{cdifftyping_out_dir}/{sample_id}.coverage.sample_cumulative_coverage_proportions",
+        _interval_statistics = f"{cdifftyping_out_dir}/{sample_id}.coverage.sample_interval_statistics",
+        _interval_summary = f"{cdifftyping_out_dir}/{sample_id}.coverage.sample_interval_summary",
+        _sample_statistics = f"{cdifftyping_out_dir}/{sample_id}.coverage.sample_statistics",
+        _sample_summary = f"{cdifftyping_out_dir}/{sample_id}.coverage.sample_summary",
+        _indel_vcf = f"{cdifftyping_out_dir}/{sample_id}.indel.vcf",
+        _indel_vcf_idx = f"{cdifftyping_out_dir}/{sample_id}.indel.vcf.idx",
+        _sam = f"{cdifftyping_out_dir}/{sample_id}.sam",
+        _snp_indel_vcf = f"{cdifftyping_out_dir}/{sample_id}.snp_indel.vcf",
+        _snp_indel_vcf_idx = f"{cdifftyping_out_dir}/{sample_id}.snp_indel.vcf.idx",
+        _snp_vcf = f"{cdifftyping_out_dir}/{sample_id}.snp.vcf",
+        _snp_vcf_idx = f"{cdifftyping_out_dir}/{sample_id}.snp.vcf.idx",
+        _TRST_fasta = f"{cdifftyping_out_dir}/{sample_id}_TRST.fasta",
     shell:
         """
         #Type
-        bash {resources_dir}/bifrost_sp_cdiff/cdiff_fbi/cdifftyping.sh -i {params.sample_id} -R1 {input.reads[0]} -R2 {input.reads[1]} -c {input.assembly} -o {rules.setup.params.folder}/{rule_name_typing} -db {input.db} -update {params.update} 1> {log.out_file} 2> {log.err_file}
+        bash {resources_dir}/bifrost_sp_cdiff/cdiff_fbi/cdifftyping.sh -i {sample_id} -R1 {input.reads[0]} -R2 {input.reads[1]} -c {input.assembly} -o {rules.setup.params.folder}/{rule_name_typing} -db {input.db} -update no 1> {log.out_file} 2> {log.err_file}
         """
 
 rule_name = "run_postcdifftyping"
+
+postcdifftyping_out_dir=f"{rules.setup.params.folder}/{rule_name_typing}/{sample_id}"
+
 rule run_postcdifftyping:
     message:
         f"Running step:{rule_name}"
@@ -173,15 +173,13 @@ rule run_postcdifftyping:
         _snp_vcf = rules.run_cdifftyping.output._snp_vcf,
         _snp_vcf_idx = rules.run_cdifftyping.output._snp_vcf_idx,
         _TRST_fasta = rules.run_cdifftyping.output._TRST_fasta,
-    params:  # values
-        sample_id = rules.run_cdifftyping.params.sample_id,
     output:
-        _file = f"{rules.setup.params.folder}/{rule_name_typing}/{sample_id}/{sample_id}.json",
-        _csv = f"{rules.setup.params.folder}/{rule_name_typing}/{sample_id}/{sample_id}.csv",
+        _file = f"{postcdifftyping_out_dir}/{sample_id}.json",
+        _csv = f"{postcdifftyping_out_dir}/{sample_id}.csv",
     shell:
         """
         # Process
-        bash {resources_dir}/bifrost_sp_cdiff/cdiff_fbi/postcdifftyping.sh -i {params.sample_id} -d {rules.setup.params.folder}/{rule_name_typing} -stbit "STNA;NA:NA" 1> {log.out_file} 2> {log.err_file}
+        bash {resources_dir}/bifrost_sp_cdiff/cdiff_fbi/postcdifftyping.sh -i {sample_id} -d {rules.setup.params.folder}/{rule_name_typing} -stbit "STNA;NA:NA" 1> {log.out_file} 2> {log.err_file}
         """
 #* Dynamic section: end ****************************************************************************
 
