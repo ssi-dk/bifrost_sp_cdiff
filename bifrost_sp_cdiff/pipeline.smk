@@ -171,8 +171,8 @@ rule run_postcdifftyping:
     params:  # values
         sample_id = rules.run_cdifftyping.params.sample_id,
     output:
-        _file = f"{rules.run_cdifftyping.output.folder}/{rules.run_cdifftyping.params.sample_id}.json",
-        _csv = f"{rules.run_cdifftyping.output.folder}/{rules.run_cdifftyping.params.sample_id}.csv",
+        _file = f"{rules.setup.params.folder}/{rules.run_cdifftyping.params.sample_id}.json",
+        _csv = f"{rules.setup.params.folder}/{rules.run_cdifftyping.params.sample_id}.csv",
     shell:
         """
         # Process
