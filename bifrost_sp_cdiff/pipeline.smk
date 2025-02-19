@@ -130,7 +130,7 @@ rule run_cdifftyping:
     shell:
         """
         #Type
-        bash {resources_dir}/bifrost_sp_cdiff/cdiff_fbi/cdifftyping.sh -i {params.sample_id} -R1 {input.reads[0]} -R2 {input.reads[1]} -c {input.assembly} -o {output.folder} -db {input.db} -update {params.update} 1> {log.out_file} 2> {log.err_file}
+        bash {resources_dir}/bifrost_sp_cdiff/cdiff_fbi/cdifftyping.sh -i {params.sample_id} -R1 {input.reads[0]} -R2 {input.reads[1]} -c {input.assembly} -o {rules.setup.params.folder} -db {input.db} -update {params.update} 1> {log.out_file} 2> {log.err_file}
         """
 
 rule_name = "run_postcdifftyping"
