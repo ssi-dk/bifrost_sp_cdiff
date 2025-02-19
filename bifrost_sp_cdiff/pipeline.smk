@@ -86,6 +86,33 @@ rule check_requirements:
 #- Templated section: end --------------------------------------------------------------------------
 
 #* Dynamic section: start **************************************************************************
+def generate_cdifftyping_files(sample_id):
+    return [
+        f"cdifffiltered_R1.fastq", 
+        f"cdifffiltered_R2.fastq",
+        f"{sample_id}.bam", 
+        f"{sample_id}.bam.bai",
+        f"{sample_id}_cdtA.info", 
+        f"{sample_id}_cdtB.info",
+        f"{sample_id}_tcdA.info", 
+        f"{sample_id}_tcdB.info", 
+        f"{sample_id}_tcdC.info",
+        f"{sample_id}.coverage",
+        f"{sample_id}.coverage.sample_cumulative_coverage_counts",
+        f"{sample_id}.coverage.sample_cumulative_coverage_proportions",
+        f"{sample_id}.coverage.sample_interval_statistics",
+        f"{sample_id}.coverage.sample_interval_summary",
+        f"{sample_id}.coverage.sample_statistics",
+        f"{sample_id}.coverage.sample_summary",
+        f"{sample_id}.indel.vcf", 
+        f"{sample_id}.indel.vcf.idx",
+        f"{sample_id}.sam",
+        f"{sample_id}.snp_indel.vcf", 
+        f"{sample_id}.snp_indel.vcf.idx",
+        f"{sample_id}.snp.vcf", 
+        f"{sample_id}.snp.vcf.idx",
+        f"{sample_id}_TRST.fasta"
+    ]
 
 rule_name_typing = "run_cdifftyping"
 
@@ -105,30 +132,7 @@ rule run_cdifftyping:
         assembly = sample['categories']['contigs']['summary']['data'],
         db = f"{resources_dir}/bifrost_sp_cdiff/{component['resources']['db']}",
     output:
-        _R1 = f"{cdifftyping_out_dir}/cdifffiltered_R1.fastq",
-        _R2 = f"{cdifftyping_out_dir}/cdifffiltered_R2.fastq",
-        _bam = f"{cdifftyping_out_dir}/{sample_id}.bam",
-        _bai = f"{cdifftyping_out_dir}/{sample_id}.bam.bai",
-        _cdtA = f"{cdifftyping_out_dir}/{sample_id}_cdtA.info",
-        _cdtB = f"{cdifftyping_out_dir}/{sample_id}_cdtB.info",
-        _tcdA = f"{cdifftyping_out_dir}/{sample_id}_tcdA.info",
-        _tcdB = f"{cdifftyping_out_dir}/{sample_id}_tcdB.info",
-        _tcdC = f"{cdifftyping_out_dir}/{sample_id}_tcdC.info",
-        _coverage = f"{cdifftyping_out_dir}/{sample_id}.coverage",
-        _counts = f"{cdifftyping_out_dir}/{sample_id}.coverage.sample_cumulative_coverage_counts",
-        _proportions = f"{cdifftyping_out_dir}/{sample_id}.coverage.sample_cumulative_coverage_proportions",
-        _interval_statistics = f"{cdifftyping_out_dir}/{sample_id}.coverage.sample_interval_statistics",
-        _interval_summary = f"{cdifftyping_out_dir}/{sample_id}.coverage.sample_interval_summary",
-        _sample_statistics = f"{cdifftyping_out_dir}/{sample_id}.coverage.sample_statistics",
-        _sample_summary = f"{cdifftyping_out_dir}/{sample_id}.coverage.sample_summary",
-        _indel_vcf = f"{cdifftyping_out_dir}/{sample_id}.indel.vcf",
-        _indel_vcf_idx = f"{cdifftyping_out_dir}/{sample_id}.indel.vcf.idx",
-        _sam = f"{cdifftyping_out_dir}/{sample_id}.sam",
-        _snp_indel_vcf = f"{cdifftyping_out_dir}/{sample_id}.snp_indel.vcf",
-        _snp_indel_vcf_idx = f"{cdifftyping_out_dir}/{sample_id}.snp_indel.vcf.idx",
-        _snp_vcf = f"{cdifftyping_out_dir}/{sample_id}.snp.vcf",
-        _snp_vcf_idx = f"{cdifftyping_out_dir}/{sample_id}.snp.vcf.idx",
-        _TRST_fasta = f"{cdifftyping_out_dir}/{sample_id}_TRST.fasta",
+        expand(f"{cdifftyping_out_dir}/{{filename}}", filename=generate_cdifftyping_files(sample_id)),
     shell:
         """
         #Type
@@ -149,30 +153,7 @@ rule run_postcdifftyping:
         f"{component['name']}/benchmarks/{rule_name}.benchmark",
     input:  # files
         rules.check_requirements.output.check_file,
-        _R1 = rules.run_cdifftyping.output._R1,
-        _R2 = rules.run_cdifftyping.output._R2,
-        _bam = rules.run_cdifftyping.output._bam,
-        _bai = rules.run_cdifftyping.output._bai,
-        _cdtA = rules.run_cdifftyping.output._cdtA,
-        _cdtB = rules.run_cdifftyping.output._cdtB,
-        _tcdA = rules.run_cdifftyping.output._tcdA,
-        _tcdB = rules.run_cdifftyping.output._tcdB,
-        _tcdC = rules.run_cdifftyping.output._tcdC,
-        _coverage = rules.run_cdifftyping.output._coverage,
-        _counts = rules.run_cdifftyping.output._counts,
-        _proportions = rules.run_cdifftyping.output._proportions,
-        _interval_statistics = rules.run_cdifftyping.output._interval_statistics,
-        _interval_summary = rules.run_cdifftyping.output._interval_summary,
-        _sample_statistics = rules.run_cdifftyping.output._sample_statistics,
-        _sample_summary = rules.run_cdifftyping.output._sample_summary,
-        _indel_vcf = rules.run_cdifftyping.output._indel_vcf,
-        _indel_vcf_idx = rules.run_cdifftyping.output._indel_vcf_idx,
-        _sam = rules.run_cdifftyping.output._sam,
-        _snp_indel_vcf = rules.run_cdifftyping.output._snp_indel_vcf,
-        _snp_indel_vcf_idx = rules.run_cdifftyping.output._snp_indel_vcf_idx,
-        _snp_vcf = rules.run_cdifftyping.output._snp_vcf,
-        _snp_vcf_idx = rules.run_cdifftyping.output._snp_vcf_idx,
-        _TRST_fasta = rules.run_cdifftyping.output._TRST_fasta,
+        expand(f"{cdifftyping_out_dir}/{{filename}}", filename=generate_cdifftyping_files(sample_id)),
     output:
         _file = f"{postcdifftyping_out_dir}/{sample_id}.json",
         _csv = f"{postcdifftyping_out_dir}/{sample_id}.csv",
