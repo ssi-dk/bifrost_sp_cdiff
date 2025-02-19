@@ -33,14 +33,6 @@ try:
         samplecomponent:SampleComponent = SampleComponent(sample_reference=sample.to_reference(), component_reference=component.to_reference()) # schema 2.1
     common.set_status_and_save(sample, samplecomponent, "Running")
 
-    # This gets the nucleotide fasta from assemblatron.
-    assemblatron_samplecomponent_field = [i for i in sample['components'] if i['name'].startswith('assemblatron')] 
-    # there may be multiple components associated with the sample, so we select the most recent one.
-    most_recent_assemblatron_name = sorted([i['name'] for i in assemblatron_samplecomponent_field], reverse=True)[0]
-    assemblatron_reference = ComponentReference(name=most_recent_assemblatron_name)
-    assemblatron_samplecomponent_ref = SampleComponentReference(name=SampleComponentReference.name_generator(sample.to_reference(), assemblatron_reference))
-    assemblatron_samplecomponent = SampleComponent.load(assemblatron_samplecomponent_ref)
-    assemblatron_path = assemblatron_samplecomponent['path']
     
 except Exception as error:
     print(traceback.format_exc(), file=sys.stderr)
@@ -109,7 +101,7 @@ rule run_cdifftyping:
     input:  # files
         rules.check_requirements.output.check_file,
         reads = sample['categories']['paired_reads']['summary']['data'],
-        assembly = f"{assemblatron_path}/{sample_id}.fasta",
+        assembly = sample['categories']['contigs']['summary']['data'],
         db = f"{resources_dir}/bifrost_sp_cdiff/{component['resources']['db']}",
     params:  # values
         sample_id = sample_id,
@@ -185,8 +177,8 @@ rule run_postcdifftyping:
     params:  # values
         sample_id = rules.run_cdifftyping.params.sample_id,
     output:
-        _file = f"{input.folder}/{rules.run_cdifftyping.params.sample_id}.json",
-        _csv = f"{input.folder}/{rules.run_cdifftyping.params.sample_id}.csv",
+        _file = f"{rules.run_cdifftyping.output.folder}/{rules.run_cdifftyping.params.sample_id}.json",
+        _csv = f"{rules.run_cdifftyping.output.folder}/{rules.run_cdifftyping.params.sample_id}.csv",
     shell:
         """
         # Process
