@@ -103,7 +103,6 @@ rule run_cdifftyping:
         sample_id = sample_id,
         update = "no",
     output:
-        folder = directory(f"{rules.setup.params.folder}"),
         _R1 = f"{rules.setup.params.folder}/sp_cdiff_fbi/cdifffiltered_R1.fastq",
         _R2 = f"{rules.setup.params.folder}/sp_cdiff_fbi/cdifffiltered_R2.fastq",
         _bam = f"{rules.setup.params.folder}/sp_cdiff_fbi/{sample_id}.bam",
@@ -145,7 +144,6 @@ rule run_postcdifftyping:
         f"{component['name']}/benchmarks/{rule_name}.benchmark",
     input:  # files
         rules.check_requirements.output.check_file,
-        folder = rules.run_cdifftyping.output.folder,
         _R1 = rules.run_cdifftyping.output._R1,
         _R2 = rules.run_cdifftyping.output._R2,
         _bam = rules.run_cdifftyping.output._bam,
@@ -180,26 +178,6 @@ rule run_postcdifftyping:
         # Process
         bash {resources_dir}/bifrost_sp_cdiff/cdiff_fbi/postcdifftyping.sh -i {params.sample_id} -d {input.folder} -stbit "STNA;NA:NA" 1> {log.out_file} 2> {log.err_file}
         """
-
-
-# rule_name = "run_qc_cdiff_summary"
-# rule run_qc_cdiff_summary:
-#     message:
-#         f"Running step:{rule_name}"
-#     log:
-#         out_file = f"{component['name']}/log/{rule_name}.out.log",
-#         err_file = f"{component['name']}/log/{rule_name}.err.log",
-#     benchmark:
-#         f"{component['name']}/benchmarks/{rule_name}.benchmark",
-#     input:  # files
-#         rules.check_requirements.output.check_file,
-#     output:
-#         folder = directory(rules.setup.params.folder + "/cdiff_analysis"),
-#     shell:
-#         """
-#         # Summarize
-#         python3 cdiff_fbi/qc_cdiff_summary.py -i {output.folder} -o {output.folder} 1> {log.out_file} 2> {log.err_file}
-#         """
 
 
 #* Dynamic section: end ****************************************************************************
