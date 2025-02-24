@@ -1,26 +1,40 @@
 #!/usr/bin/env python3
 """
-Launcher file for accessing dockerfile commands
+Launcher file
 """
 import argparse
-from io import FileIO, StringIO
-import json
 import os
 import sys
 import traceback
-import subprocess
+from bifrostlib import common
+from bifrostlib.datahandling import SampleReference
+from bifrostlib.datahandling import Sample
 from bifrostlib import datahandling
 from bifrostlib.datahandling import Component
 from bifrostlib.datahandling import ComponentReference
+from bifrostlib.datahandling import SampleComponentReference
+from bifrostlib.datahandling import SampleComponent
+
 import yaml
 import pprint
 from typing import List, Dict
+#import snakemake
+import subprocess
 
-from yaml.tokens import StreamEndToken
+from contextlib import contextmanager
 
 
 global COMPONENT
 
+@contextmanager
+def pushd(new_dir):
+    """Context manager to change directory and restore it afterwards."""
+    prev_dir = os.getcwd()  # Save the current working directory
+    os.chdir(new_dir)       # Change to the new directory
+    try:
+        yield
+    finally:
+        os.chdir(prev_dir)  # Restore the previous working directory
 
 def initialize():
     with open(os.path.join(os.path.dirname(__file__), 'config.yaml')) as fh:
@@ -78,7 +92,6 @@ def parse_and_run(args: List[str]) -> None:
         f"-Environmental Variables/Defaults---------------\n"
         f"BIFROST_CONFIG_DIR: {os.environ.get('BIFROST_CONFIG_DIR','.')}\n"
         f"BIFROST_RUN_DIR: {os.environ.get('BIFROST_RUN_DIR','.')}\n"
-        f"BIFROST_DB_KEY: {os.environ.get('BIFROST_DB_KEY')}\n"
         f"------------------------------------------------\n"
         f"\n"
     )
@@ -141,27 +154,50 @@ def parse_and_run(args: List[str]) -> None:
 def show_info() -> None:
     pprint.pprint(COMPONENT.json)
 
-
-def run_pipeline(args: argparse.Namespace) -> None:
-    try:
-        sample_var = f""
-        if args.sample_id is not None:
-            sample_var = f"sample_id={args.sample_id}"
-        else:
-            sample_var = f"sample_name={args.sample_name}"
+def subprocess_runner(snakefile,
+                      config, outdir,
+                      cores= os.cpu_count):
+        config_list = ["--config"] + [f"{k}={v}" for k,v in config.items()]
         command = ["snakemake","-p","--nolock","--cores", "all",
-                   "-s", os.path.join(os.path.dirname(__file__),'pipeline.smk'),
-                   "--config", f"{sample_var}", f"component_name={COMPONENT['name']}"]
+                   "-s", snakefile ]
+        command.extend(config_list)
         print(" ".join(command))
         process: subprocess.Popen = subprocess.Popen(
             command,
             stdout=sys.stdout,
             stderr=sys.stderr,
             shell=False,
-            cwd=args.outdir
+            cwd=outdir
         )
         process.communicate()
+        if process.returncode != 0:
+            raise RuntimeError(f"Command {' '.join([str(x) for x in command])} failed with code {process.returncode}")
+
+def run_pipeline(args: argparse.Namespace, runner=subprocess_runner) -> None:
+    try:
+        config = {"component_name": COMPONENT['name']}
+        if args.sample_id is not None:
+            config["sample_id"] = args.sample_id
+            sample_ref = SampleReference(_id=args.sample_id)
+        else:
+            config["sample_name"]=args.sample_name
+            sample_ref = SampleReference(name=args.sample_name)
+        sample:Sample = Sample.load(sample_ref) # schema 2.1
+        samplecomponent_ref = SampleComponentReference(name=SampleComponentReference.name_generator(sample.to_reference(), COMPONENT.to_reference()))
+        samplecomponent = SampleComponent.load(samplecomponent_ref)
+        if samplecomponent is None:
+            samplecomponent:SampleComponent = SampleComponent(sample_reference=sample.to_reference(), component_reference=COMPONENT.to_reference()) # schema 2.1
+
+        snakefile = os.path.join(os.path.dirname(__file__),'pipeline.smk')
+        with pushd(args.outdir):
+            status = runner(
+                snakefile=snakefile,
+                config=config,
+                outdir=args.outdir,
+                cores = os.cpu_count
+            )
     except Exception:
+        common.set_status_and_save(sample, samplecomponent, "Failure")
         print(traceback.format_exc())
         raise
 
