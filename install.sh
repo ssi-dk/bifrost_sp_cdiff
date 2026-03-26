@@ -81,25 +81,17 @@ fi
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 REQ_TXT="$SCRIPT_DIR/environment.yml"
-LAST_DIR_NAME=$(basename "$SCRIPT_DIR")
-CODEDIR="$SCRIPT_DIR/$LAST_DIR_NAME"
-echo "The last directory name is: $LAST_DIR_NAME"
-echo "the script dir $SCRIPT_DIR"
-echo "codeDIR $CODEDIR"
-
-CONFIG_YAML_PATH=$(find $CODEDIR -name "config.yaml")
-#CONFIG_YAML_PATH=$(find $SCRIPT_DIR -type f -name "config.yaml")
-echo "$CONFIG_YAML_PATH"
-
+_config_yaml_dir=$(basename -- "$SCRIPT_DIR")
+CONFIG_YAML_PATH=$_config_yaml_dir"/config.yaml"
 if test -f "$CONFIG_YAML_PATH";
 then
-  COMPONENT_NAME=$(grep -oP "^display_name:\s*\K.*" $CONFIG_YAML_PATH | tr " " "\n" | grep -v "display_name:")
+  COMPONENT_NAME=$(grep "display_name:.*." $CONFIG_YAML_PATH | tr " " "\n" | grep -v "display_name:")
   if [ -z "$COMPONENT_NAME" ]
     then
       echo "display_name: in config.yaml should contain component name"
       exit 1
   fi
-  COMPONENT_VERSION=$(grep -oP "^  code:\s*\K.*" $CONFIG_YAML_PATH | tr " " "\n" | grep -v "code:")
+  COMPONENT_VERSION=$(grep -o "code:.*." $CONFIG_YAML_PATH | tr " " "\n" | grep -v "code:")
   if [ -z "$COMPONENT_VERSION" ]
     then
       echo "code: in config.yaml should contain component version"
@@ -159,7 +151,6 @@ fi
 #check if custom_install.sh file exists and run it
 if test -f "$CUSTOM_INSTALL_PATH";
 then
-  echo -e "\nRunning custom_install.sh -> bash -i $CUSTOM_INSTALL_PATH $ENV_NAME"
+  echo -e "\nRunning custom_install.sh"
   bash -i $CUSTOM_INSTALL_PATH $ENV_NAME #-i required for interactive mode to active env
-  #bash $CUSTOM_INSTALL_PATH $ENV_NAME
 fi
