@@ -156,7 +156,9 @@ def show_info() -> None:
 
 def subprocess_runner(snakefile,
                       config, outdir,
-                      cores= os.cpu_count):
+                      cores=None):
+        if cores is None:
+            cores = os.cpu_count()
         config_list = ["--config"] + [f"{k}={v}" for k,v in config.items()]
         command = ["snakemake","-p","--nolock","--cores", "all",
                    "-s", snakefile ]
@@ -173,32 +175,57 @@ def subprocess_runner(snakefile,
         if process.returncode != 0:
             raise RuntimeError(f"Command {' '.join([str(x) for x in command])} failed with code {process.returncode}")
 
+
+
+
 def run_pipeline(args: argparse.Namespace, runner=subprocess_runner) -> None:
+    sample = None
+    samplecomponent = None
     try:
         config = {"component_name": COMPONENT['name']}
         if args.sample_id is not None:
             config["sample_id"] = args.sample_id
             sample_ref = SampleReference(_id=args.sample_id)
         else:
-            config["sample_name"]=args.sample_name
+            config["sample_name"] = args.sample_name
             sample_ref = SampleReference(name=args.sample_name)
-        sample:Sample = Sample.load(sample_ref) # schema 2.1
-        samplecomponent_ref = SampleComponentReference(name=SampleComponentReference.name_generator(sample.to_reference(), COMPONENT.to_reference()))
-        samplecomponent = SampleComponent.load(samplecomponent_ref)
-        if samplecomponent is None:
-            samplecomponent:SampleComponent = SampleComponent(sample_reference=sample.to_reference(), component_reference=COMPONENT.to_reference()) # schema 2.1
 
-        snakefile = os.path.join(os.path.dirname(__file__),'pipeline.smk')
+        sample: Sample = Sample.load(sample_ref)  # schema 2.1
+
+        samplecomponent_ref = SampleComponentReference(
+            name=SampleComponentReference.name_generator(
+                sample.to_reference(),
+                COMPONENT.to_reference()
+            )
+        )
+        samplecomponent = SampleComponent.load(samplecomponent_ref)
+
+        if samplecomponent is None:
+            samplecomponent = SampleComponent(
+                sample_reference=sample.to_reference(),
+                component_reference=COMPONENT.to_reference()
+            )  # schema 2.1
+
+        snakefile = os.path.join(os.path.dirname(__file__), 'pipeline.smk')
         with pushd(args.outdir):
-            status = runner(
+            runner(
                 snakefile=snakefile,
                 config=config,
                 outdir=args.outdir,
-                cores = os.cpu_count
+                cores=os.cpu_count()
             )
+
     except Exception:
-        common.set_status_and_save(sample, samplecomponent, "Failure")
-        print(traceback.format_exc())
+        if sample is not None and samplecomponent is not None:
+            common.set_status_and_save(sample, samplecomponent, "Failure")
+        elif sample is not None:
+            try:
+                sample["status"] = "Failure"
+                sample.save()
+            except Exception:
+                print("Failed to save sample failure status", file=sys.stderr)
+
+        print(traceback.format_exc(), file=sys.stderr)
         raise
 
 def main(args = sys.argv):
