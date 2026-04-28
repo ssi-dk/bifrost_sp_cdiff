@@ -39,7 +39,8 @@ except Exception as error:
 
 if not samplecomponent.has_requirements():
    common.set_status_and_save(sample, samplecomponent, "Requirements not met")
-   raise SystemExit("Requirements not met")
+   print("Requirements not met", file=sys.stderr)
+   raise SystemExit(0)
 
 onerror:
     if not samplecomponent.has_requirements():
@@ -137,7 +138,6 @@ rule run_postcdifftyping:
     benchmark:
         f"{component['name']}/benchmarks/{rule_name}.benchmark",
     input:  # files
-        rules.check_requirements.output.check_file,
         expand(f"{cdifftyping_out_dir}/{{filename}}", filename=generate_cdifftyping_files(sample_id)),
     output:
         _file = f"{postcdifftyping_out_dir}/{sample_id}.json",
